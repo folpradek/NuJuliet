@@ -393,26 +393,6 @@ end
     return abs(M) > 0.0 ? conj(M) / abs(M) : 1.0 + 0.0im
 end
 
-@inline function RPA_external_normalize!(M::Vector{ComplexF64})
-    # Renormalize M ... to reasonable scale averaged densities (no change if all vanish) ...
-    Norm = sqrt(sum(abs2.(M)))
-    M .= Norm > 0.0 ? abs.(M) ./ Norm : abs.(M)
-    return M
-end
-
-@inline function RPA_external_YJ(Orb::Vector{Orb1B},a::Int64,b::Int64,J::Int64)
-    # Angular & phase factor <a||Y_J||b> ... same convention as in Tr1b_EX_initialize, i.e. TrOp.EX[a,b] = <a||Y_J||b> * <a|r^X|b> (r^2 for E0) ...
-    #   (vanishes for l_a + l_b + J odd, i.e. for the unnatural-parity multipoles) ...
-    l_a, j_a = Orb[a].l, Orb[a].j
-    l_b, j_b = Orb[b].l, Orb[b].j
-
-    if isodd(l_a + l_b + J)
-        return 0.0
-    end
-
-    return phase(J + div(j_a - 1,2)) * sqrt(Float64((j_a + 1) * (j_b + 1))) * cg(j_a,j_b,2*J,1,-1,0) / sqrt(4.0 * pi)
-end
-
 function RPA_external_orbitals_grid(Orb::Vector{Orb1B},C::O1B,r_grid::Vector{Float64},nu_proton::Float64,nu_neutron::Float64)
     # Radial representation of the reference basis orbitals ...
     a_max = length(Orb)
@@ -453,7 +433,19 @@ function RPA_external_radial_densities(Orb::Vector{Orb1B},Pairs::Vector{Ind2B},G
     N_phonon = size(Gamma,2)
     N_grid = length(r_grid)
 
-    Amp_ab = [RPA_external_YJ(Orb,Pair.a,Pair.b,J) for Pair in Pairs]
+    # Local angular & phase factor function ...
+    @inline function YJ_reduced(Orb::Vector{Orb1B},a::Int64,b::Int64,J::Int64)
+        l_a, j_a = Orb[a].l, Orb[a].j
+        l_b, j_b = Orb[b].l, Orb[b].j
+
+        if isodd(l_a + l_b + J)
+            return 0.0
+        end
+
+        return phase(J + div(j_a - 1,2)) * sqrt(Float64((j_a + 1) * (j_b + 1))) * cg(j_a,j_b,2*J,1,-1,0) / sqrt(4.0 * pi)
+    end
+
+    Amp_ab = [YJ_reduced(Orb,Pair.a,Pair.b,J) for Pair in Pairs]
 
     # Gauge of the given phonon levels ...
     Gauge = ones(ComplexF64,N_phonon)
@@ -524,10 +516,10 @@ function RPA_external_export_densities(IO_RPA::String,File_Name::String,JP::Stri
     end
 
     # Renormalize M ... to reasonable scale averaged densities ...
-    RPA_external_normalize!(pM)
-    RPA_external_normalize!(nM)
-    RPA_external_normalize!(isM)
-    RPA_external_normalize!(ivM)
+    phonon_weights!(pM)
+    phonon_weights!(nM)
+    phonon_weights!(isM)
+    phonon_weights!(ivM)
 
     # Perform the export of of averaged RPA transition radial densities ...
     Output_File = IO_RPA * "/densities/RPA_" * File_Name * "_JP$(JP)_Averaged.dat"
@@ -1011,10 +1003,10 @@ function RPA_transition_currents(Params::Parameters;JP::String,nu_list::Vector{I
     end
 
     # Renormalize M ... to reasonable scale averaged current densities ...
-    RPA_external_normalize!(pM)
-    RPA_external_normalize!(nM)
-    RPA_external_normalize!(isM)
-    RPA_external_normalize!(ivM)
+    phonon_weights!(pM)
+    phonon_weights!(nM)
+    phonon_weights!(isM)
+    phonon_weights!(ivM)
 
     # Perform the export of of averaged RPA transition current maps ... (convective & spin transition current densities)
     for (Label, pJ_map, nJ_map) in (("Convective", pJ_conv_map, nJ_conv_map), ("Spin", pJ_spin_map, nJ_spin_map))

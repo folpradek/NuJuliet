@@ -16,7 +16,7 @@
     Base.@kwdef struct HF_MBPT_Parameters
         Export::Bool = false
         TBCF::Bool = false
-        MFP::Bool = false
+        ScH::Bool = false
     end
 
     Base.@kwdef struct HF_Parameters
@@ -55,6 +55,7 @@
         TBCF::Bool = false
         TBCF_alpha::Float64 = 0.8
         TBCF_beta::Float64 = 5.0
+        DEV::Bool = false
     end
 
     Base.@kwdef struct BCS_Parameters

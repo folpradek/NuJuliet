@@ -37,6 +37,9 @@ function RPA_energy(Params::Parameters,Orb::Vector{Orb1B},Orb_1p1h::Orb2B_1p1h,O
         if Sigma_AB !== nothing
             Zero = [zeros(Float64,Orb_1p1h.N[P,J+1],Orb_1p1h.N[P,J+1]) for P in 1:2, J in 0:(2*Params.Calc.Nmax + 1)]
             @time dA, dB = RPA_allocate_TBCF(Params,Orb,Orb_1p1h,Orb_NN,V_NN,Sigma_AB,Zero,deepcopy(Zero))
+            if Params.Calc.RPA.DEV
+                @time dA = RPA_allocate_SE(Params,Orb,Orb_1p1h,Orb_NN,h_N,V_NN,dA, Mode = "OnShell")
+            end
             E_corr_dress = RPA_energy_dress(Params,Orb,Orb_1p1h,E,X,Y,dA,dB)
         end
     end

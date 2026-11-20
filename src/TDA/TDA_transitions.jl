@@ -176,7 +176,7 @@ function TDA_transition_kernel(Params::Parameters,J::Int64,P::Int64,Orb::Vector{
 
         # 2-body part (reference 2-body correlation function Sigma) ...
         if TBCF == true
-            Phase_X = phase(div(j_p + j_h,2))
+            Phase_X = phase(1 + div(j_p + j_h,2))
 
             @inbounds for Pair in Pairs
                 Pair.T != T_ph && continue
@@ -328,21 +328,21 @@ function TDA_rB(Params::Parameters,Orb_1p1h::Orb2B_1p1h,rM::ReducedMultipole,E::
 
             # Isovector components ...
         rB_E1[3][i_nu] = abs(e_p * rM.E1.p[i_nu] - e_n * rM.E1.n[i_nu])^2
-        rB_E1V[3][i_nu] = abs(0.5 * (rM.E1_VC.p[i_nu] - rM.E1_VC.n[i_nu]) + 0.125 * (g_p - g_n) * (rM.E1_VS.p[i_nu] + rM.E1_VS.n[i_nu]))^2
+        rB_E1V[3][i_nu] = abs(0.5 * (rM.E1_VC.p[i_nu] - rM.E1_VC.n[i_nu]) + 0.125 * (g_p - g_n) * (rM.E1_VS.p[i_nu] - rM.E1_VS.n[i_nu]))^2
         rB_E1VC[3][i_nu] = abs(0.5 * (rM.E1_VC.p[i_nu] - rM.E1_VC.n[i_nu]))^2
-        rB_E1VS[3][i_nu] = abs(0.125 * (g_p - g_n) * (rM.E1_VS.p[i_nu] + rM.E1_VS.n[i_nu]))^2
+        rB_E1VS[3][i_nu] = abs(0.125 * (g_p - g_n) * (rM.E1_VS.p[i_nu] - rM.E1_VS.n[i_nu]))^2
         
-        rB_E1T[3][i_nu] = abs(0.5 * (rM.E1_TC.p[i_nu] - rM.E1_TC.n[i_nu]) + 0.125 * (g_p - g_n) * (rM.E1_TS.p[i_nu] + rM.E1_TS.n[i_nu]))^2
+        rB_E1T[3][i_nu] = abs(0.5 * (rM.E1_TC.p[i_nu] - rM.E1_TC.n[i_nu]) + 0.125 * (g_p - g_n) * (rM.E1_TS.p[i_nu] - rM.E1_TS.n[i_nu]))^2
         rB_E1TC[3][i_nu] = abs(0.5 * (rM.E1_TC.p[i_nu] - rM.E1_TC.n[i_nu]))^2
-        rB_E1TS[3][i_nu] = abs(0.125 * (g_p - g_n) * (rM.E1_TS.p[i_nu] + rM.E1_TS.n[i_nu]))^2
+        rB_E1TS[3][i_nu] = abs(0.125 * (g_p - g_n) * (rM.E1_TS.p[i_nu] - rM.E1_TS.n[i_nu]))^2
 
-        rB_E1C[3][i_nu] = abs(0.5 * (rM.E1_TC.p[i_nu] - rM.E1_TC.n[i_nu]) + 0.125 * (g_p - g_n) * (rM.E1_TS.p[i_nu] + rM.E1_TS.n[i_nu]) - (0.5 * (rM.E1_VC.p[i_nu] - rM.E1_VC.n[i_nu]) + 0.125 * (g_p - g_n) * (rM.E1_VS.p[i_nu] + rM.E1_VS.n[i_nu])))^2
+        rB_E1C[3][i_nu] = abs(0.5 * (rM.E1_TC.p[i_nu] - rM.E1_TC.n[i_nu]) + 0.125 * (g_p - g_n) * (rM.E1_TS.p[i_nu] - rM.E1_TS.n[i_nu]) - (0.5 * (rM.E1_VC.p[i_nu] - rM.E1_VC.n[i_nu]) + 0.125 * (g_p - g_n) * (rM.E1_VS.p[i_nu] - rM.E1_VS.n[i_nu])))^2
         rB_E1CC[3][i_nu] = abs(0.5 * (rM.E1_TC.p[i_nu] - rM.E1_TC.n[i_nu]) - (0.5 * (rM.E1_VC.p[i_nu] - rM.E1_VC.n[i_nu])))^2
-        rB_E1CS[3][i_nu] = abs(0.125 * (g_p - g_n) * (rM.E1_TS.p[i_nu] + rM.E1_TS.n[i_nu]) - (0.125 * (g_p - g_n) * (rM.E1_VS.p[i_nu] + rM.E1_VS.n[i_nu])))^2
+        rB_E1CS[3][i_nu] = abs(0.125 * (g_p - g_n) * (rM.E1_TS.p[i_nu] - rM.E1_TS.n[i_nu]) - (0.125 * (g_p - g_n) * (rM.E1_VS.p[i_nu] - rM.E1_VS.n[i_nu])))^2
 
         rB_E1c[3][i_nu] = 0.25 * abs(rM.E1_C.p[i_nu] - rM.E1_C.n[i_nu])^2
 
-        rB_E1_NLO_LWA[3][i_nu] = abs(e_p * rM.E1.p[i_nu] - e_n * rM.E1.n[i_nu] + 0.5 * E_nu / hc * ((rM.E1_TC.p[i_nu] - rM.E1_TC.n[i_nu]) + 0.125 * (g_p - g_n) * (rM.E1_TS.p[i_nu] + rM.E1_TS.n[i_nu])))^2
+        rB_E1_NLO_LWA[3][i_nu] = abs(e_p * rM.E1.p[i_nu] - e_n * rM.E1.n[i_nu] + 0.5 * E_nu / hc * ((rM.E1_TC.p[i_nu] - rM.E1_TC.n[i_nu]) + 0.25 * (g_p - g_n) * (rM.E1_TS.p[i_nu] - rM.E1_TS.n[i_nu])))^2
     end
 
     # Case of E2 ...

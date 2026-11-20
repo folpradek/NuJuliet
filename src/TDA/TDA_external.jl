@@ -87,16 +87,21 @@ function TDA_occupation_factors(Params::Parameters,Orb::Vector{Orb1B},Orb_1p1h::
     return Pairs, D, f_N
 end
 
-@inline function TDA_external_normalize!(M::Vector{Float64})
-    # Renormalize M ... to reasonable scale averaged densities (no change if all vanish, e.g. a single spurious level) ...
-    Norm = sqrt(sum(abs2.(M)))
-    M .= Norm > 0.0 ? abs.(M) ./ Norm : abs.(M)
-    return M
-end
-
 function TDA_transition_densities(Params::Parameters;JP::String,nu_list::Vector{Int64},File_Name::String = "Phonon_Densities")
     # Initialize the angular momentum algebra ...
     wigner_init_float(75, "Jmax", 9)
+
+    # Local angular & phase factor function ...
+    @inline function YJ_reduced(Orb::Vector{Orb1B},a::Int64,b::Int64,J::Int64)
+        l_a, j_a = Orb[a].l, Orb[a].j
+        l_b, j_b = Orb[b].l, Orb[b].j
+
+        if isodd(l_a + l_b + J)
+            return 0.0
+        end
+
+        return phase(J + div(j_a - 1,2)) * sqrt(Float64((j_a + 1) * (j_b + 1))) * cg(j_a,j_b,2*J,1,-1,0) / sqrt(4.0 * pi)
+    end
 
     # Read parameters ...
     A = Float64(Params.Calc.A)
@@ -111,20 +116,6 @@ function TDA_transition_densities(Params::Parameters;JP::String,nu_list::Vector{
     m_p = 938.272013
     nu_proton = 0.5 * m_p * hw / hc^2
     nu_neutron = 0.5 * m_n * hw / hc^2
-
-    # Define a local function ...
-    @inline function TDA_external_YJ(Orb::Vector{Orb1B},a::Int64,b::Int64,J::Int64)
-        # Angular & phase factor <a||Y_J||b> ... same convention as in Tr1b_EX_initialize, i.e. TrOp.EX[a,b] = <a||Y_J||b> * <a|r^X|b> (r^2 for E0) ...
-        #   (vanishes for l_a + l_b + J odd, i.e. for the unnatural-parity multipoles) ...
-        l_a, j_a = Orb[a].l, Orb[a].j
-        l_b, j_b = Orb[b].l, Orb[b].j
-
-        if isodd(l_a + l_b + J)
-            return 0.0
-        end
-
-        return phase(J + div(j_a - 1,2)) * sqrt(Float64((j_a + 1) * (j_b + 1))) * cg(j_a,j_b,2*J,1,-1,0) / sqrt(4.0 * pi)
-    end
 
     # Define the properties of radial grid ...
     r_min, r_max = 0.0 + 1e-8, 2.5 * 1.2 * A^(1/3)
@@ -317,7 +308,7 @@ function TDA_transition_densities(Params::Parameters;JP::String,nu_list::Vector{
     Amp_ab = Vector{Float64}(undef,N_ab)
 
     @inbounds for ab in 1:N_ab
-        Amp_ab[ab] = TDA_external_YJ(Orb,Pairs[ab].a,Pairs[ab].b,J)
+        Amp_ab[ab] = YJ_reduced(Orb,Pairs[ab].a,Pairs[ab].b,J)
     end
 
     # Initialize radial grids for given phonon levels ...
@@ -379,10 +370,10 @@ function TDA_transition_densities(Params::Parameters;JP::String,nu_list::Vector{
     end
 
     # Renormalize M ... to reasonable scale averaged densities ...
-    TDA_external_normalize!(pM)
-    TDA_external_normalize!(nM)
-    TDA_external_normalize!(isM)
-    TDA_external_normalize!(ivM)
+    phonon_weights!(pM)
+    phonon_weights!(nM)
+    phonon_weights!(isM)
+    phonon_weights!(ivM)
 
     # Perform the export of of averaged TDA transition radial densities ...
     Output_File = IO_TDA * "/densities/TDA_" * File_Name * "_JP$(JP)_Averaged.dat"
@@ -737,10 +728,10 @@ function TDA_transition_operator_densities(Params::Parameters;JP::String,nu_list
     display("Export of individual phonon radial transition densities successfuly completed ...")
 
     # Renormalize M ... to reasonable scale averaged densities ...
-    TDA_external_normalize!(pM)
-    TDA_external_normalize!(nM)
-    TDA_external_normalize!(isM)
-    TDA_external_normalize!(ivM)
+    phonon_weights!(pM)
+    phonon_weights!(nM)
+    phonon_weights!(isM)
+    phonon_weights!(ivM)
 
     # Perform the export of of averaged TDA transition matrix radial densities ...
     Output_File = IO_TDA * "/densities/TDA_" * File_Name * "_JP$(JP)_Averaged.dat"
@@ -1328,9 +1319,9 @@ function TDA_transition_currents(Params::Parameters;JP::String,nu_list::Vector{I
 
     end
 
-    # Scale the currents to correct physical units in [c] ...
-    pJ_conv_map .= pJ_conv_map .* hc / m_p
-    nJ_conv_map .= nJ_conv_map .* hc / m_n
+    # Scale the currents to correct physical units in [c] ... (J1b_convective = -2i j_conv in units hbar/m, i.e. factor hbar/2m as in RPA_transition_currents)
+    pJ_conv_map .= pJ_conv_map .* 0.5 * hc / m_p
+    nJ_conv_map .= nJ_conv_map .* 0.5 * hc / m_n
     pJ_spin_map .= pJ_spin_map .* hc / m_p
     nJ_spin_map .= nJ_spin_map .* hc / m_n
 
@@ -1388,10 +1379,10 @@ function TDA_transition_currents(Params::Parameters;JP::String,nu_list::Vector{I
     end
 
     # Renormalize M ... to reasonable scale averaged current densities ...
-    TDA_external_normalize!(pM)
-    TDA_external_normalize!(nM)
-    TDA_external_normalize!(isM)
-    TDA_external_normalize!(ivM)
+    phonon_weights!(pM)
+    phonon_weights!(nM)
+    phonon_weights!(isM)
+    phonon_weights!(ivM)
 
     # Perform the export of of averaged TDA transition current maps ...
         # Case of convective transition current densities ...

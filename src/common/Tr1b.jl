@@ -168,6 +168,7 @@ function Tr1b_E1_NLO_initialize(Params::Parameters,Orb::Vector{Orb1B},chR2::Floa
         n_a, l_a, j_a = Orb[a].n, Orb[a].l, Orb[a].j
         n_b, l_b, j_b = Orb[b].n, Orb[b].l, Orb[b].j
 
+        # Convective current combination ... <a|| A . (psi_a^+ grad psi_b - (grad psi_a)^+ psi_b) ||b>, i.e. (Ket - Bra) term ...
         rME = 0.0
 
         Amp_Bra = phase(l_b + div(j_b + 1,2)) * w6j(2*l_b,1,j_b,j_a,2*J,2*l_a) *
@@ -179,13 +180,13 @@ function Tr1b_E1_NLO_initialize(Params::Parameters,Orb::Vector{Orb1B},chR2::Floa
         if abs(L - l_b) <= (l_a - 1) && (l_a - 1) <= (L + l_b)
             ME = Amp_Bra * cg(2*l_b,2*L,2*l_a-2,0,0,0) * w6j(2*L,2,2*J,2*l_a,2*l_b,2*l_a-2) * sqrt(Float64(l_a) / Float64(2*l_a + 1)) *
                 (rME_rN_dr(n_b,l_b,n_a,l_a,N,hw) + Float64(l_a + 1) * rME_rN(n_a,l_a,n_b,l_b,N-1,hw))
-            rME += ME
+            rME -= ME
         end
 
-        if abs(L - l_b) <= (l_a + 1) && (l_a + 1) <= (L + l_b) && l_a >= 1
-            ME = Amp_Bra * cg(2*l_b,2*L,2*l_a+2,0,0,0) * w6j(2*L,2,2*J,2*l_a,2*l_b,2*l_a+2) * sqrt(Float64(l_a - 1) / Float64(2*l_a + 1)) *
+        if abs(L - l_b) <= (l_a + 1) && (l_a + 1) <= (L + l_b)
+            ME = Amp_Bra * cg(2*l_b,2*L,2*l_a+2,0,0,0) * w6j(2*L,2,2*J,2*l_a,2*l_b,2*l_a+2) * sqrt(Float64(l_a + 1) / Float64(2*l_a + 1)) *
                 (rME_rN_dr(n_b,l_b,n_a,l_a,N,hw) - Float64(l_a) * rME_rN(n_a,l_a,n_b,l_b,N-1,hw))
-            rME -= ME
+            rME += ME
         end
 
         if abs(L - l_a) <= (l_b - 1) && (l_b - 1) <= (L + l_a)
@@ -194,8 +195,8 @@ function Tr1b_E1_NLO_initialize(Params::Parameters,Orb::Vector{Orb1B},chR2::Floa
             rME += ME
         end
 
-        if abs(L - l_a) <= (l_b + 1) && (l_b + 1) <= (L + l_a) && l_b >= 1
-            ME = Amp_Ket * cg(2*l_a,2*L,2*l_b+2,0,0,0) * w6j(2*L,2,2*J,2*l_b,2*l_a,2*l_b+2) * sqrt(Float64(l_b - 1) / Float64(2*l_b + 1)) *
+        if abs(L - l_a) <= (l_b + 1) && (l_b + 1) <= (L + l_a)
+            ME = Amp_Ket * cg(2*l_a,2*L,2*l_b+2,0,0,0) * w6j(2*L,2,2*J,2*l_b,2*l_a,2*l_b+2) * sqrt(Float64(l_b + 1) / Float64(2*l_b + 1)) *
                 (rME_rN_dr(n_a,l_a,n_b,l_b,N,hw) - Float64(l_b) * rME_rN(n_a,l_a,n_b,l_b,N-1,hw))
             rME -= ME
         end
@@ -211,7 +212,8 @@ function Tr1b_E1_NLO_initialize(Params::Parameters,Orb::Vector{Orb1B},chR2::Floa
             return 0.0
         end
 
-        Amp = phase(l_a + l_b + J + div(j_b + 3,2)) * sqrt(Float64((j_a + 1) * (j_b + 1) * (2*l_a + 1) * (2*l_b + 1)) / (8.0 * pi * Float64(J * (J + 1)))) *
+        # Normalized to the spin s = sigma/2 , i.e. <a|| A . curl(psi_a^+ s psi_b) ||b> ...
+        Amp = phase(l_a + l_b + J + div(j_b + 3,2)) * sqrt(Float64((j_a + 1) * (j_b + 1) * (2*l_a + 1) * (2*l_b + 1)) / (16.0 * pi * Float64(J * (J + 1)))) *
               Float64((l_a - l_b) * (l_a + l_b + 1) - div((j_a - j_b) * (j_a + j_b + 2),4)) * cg(2*l_a,2*l_b,2*J,0,0,0) * w6j(2*l_a,j_a,1,j_b,2*l_b,2*J)
 
         if abs(Amp) < 1e-12
@@ -283,16 +285,20 @@ function Tr1b_E1_NLO_initialize(Params::Parameters,Orb::Vector{Orb1B},chR2::Floa
                 rr1_Y1_ab = rME_rN_YL(a,b,1,1,hw,Orb)
                 rr3_Y1_ab = rME_rN_YL(a,b,3,1,hw,Orb)
 
+                # Units & normalization (Kvasil et al., PRC 84, 034303 (2011)) ... j = (hbar/2m) * (-i) * (psi^+ grad psi - (grad psi)^+ psi) + (hbar/m) * (g_s/2) * curl(psi^+ s psi) ,
+                #   convective parts (VC, TC, sTC) ... 0.5 * hbar/mc * <a||A . (psi_a^+ grad psi_b - (grad psi_a)^+ psi_b)||b> ,
+                #   magnetization parts (VS, TS, sTS) ... hbar/mc * <a||A . curl(psi_a^+ s psi_b)||b> , combined as VC + 0.5 * g_s * VS (RPA_rB, ...) ,
+                #   [VC] = [TC] = fm^2 , [C] = fm^3 , i.e. E1 + k * TC with k = E/hc in fm^-1 (the factor -i/c of Kvasil is absorbed into the real matrix elements) ...
                 # Proton components ...
-                pVCME = hc_pmc2 * sqrt(3.0 / 2.0) / 5.0 * rG_dot_r2_Y12_ab
+                pVCME = 0.5 * hc_pmc2 * sqrt(3.0 / 2.0) / 5.0 * rG_dot_r2_Y12_ab
 
                 pVSME = hc_pmc2 * sqrt(3.0 / 2.0) / 5.0 * rG_cross_S_dot_r2_Y12_ab
 
-                pTCME = hc_pmc2 * (sqrt(3.0 / 2.0) / 15.0 * rG_dot_r2_Y12_ab + sqrt(3.0) / 6.0 * rG_dot_r2_Y10_ab)
+                pTCME = 0.5 * hc_pmc2 * (sqrt(3.0 / 2.0) / 15.0 * rG_dot_r2_Y12_ab + sqrt(3.0) / 6.0 * rG_dot_r2_Y10_ab)
 
                 pTSME = hc_pmc2 * (sqrt(3.0 / 2.0) / 15.0 * rG_cross_S_dot_r2_Y12_ab + sqrt(3.0) / 6.0 * rG_cross_S_dot_r2_Y10_ab)
 
-                psTCME = -hc_pmc2 * sqrt(3.0) / 6.0 * chR2 * rG_dot_Y10_ab
+                psTCME = -0.5 * hc_pmc2 * sqrt(3.0) / 6.0 * chR2 * rG_dot_Y10_ab
 
                 psTSME = -hc_pmc2 * sqrt(3.0) / 6.0 * chR2 * rG_cross_S_dot_Y10_ab
                 
@@ -310,15 +316,15 @@ function Tr1b_E1_NLO_initialize(Params::Parameters,Orb::Vector{Orb1B},chR2::Floa
                 psCSum += psCME
 
                 # Neutron components ...
-                nVCME = hc_nmc2 * sqrt(3.0 / 2.0) / 5.0 * rG_dot_r2_Y12_ab
+                nVCME = 0.5 * hc_nmc2 * sqrt(3.0 / 2.0) / 5.0 * rG_dot_r2_Y12_ab
 
                 nVSME = hc_nmc2 * sqrt(3.0 / 2.0) / 5.0 * rG_cross_S_dot_r2_Y12_ab
 
-                nTCME = hc_nmc2 * (sqrt(3.0 / 2.0) / 15.0 * rG_dot_r2_Y12_ab + sqrt(3.0) / 6.0 * rG_dot_r2_Y10_ab)
+                nTCME = 0.5 * hc_nmc2 * (sqrt(3.0 / 2.0) / 15.0 * rG_dot_r2_Y12_ab + sqrt(3.0) / 6.0 * rG_dot_r2_Y10_ab)
 
                 nTSME = hc_nmc2 * (sqrt(3.0 / 2.0) / 15.0 * rG_cross_S_dot_r2_Y12_ab + sqrt(3.0) / 6.0 * rG_cross_S_dot_r2_Y10_ab)
 
-                nsTCME = -hc_nmc2 * sqrt(3.0) / 6.0 * chR2 * rG_dot_Y10_ab
+                nsTCME = -0.5 * hc_nmc2 * sqrt(3.0) / 6.0 * chR2 * rG_dot_Y10_ab
 
                 nsTSME = -hc_nmc2 * sqrt(3.0) / 6.0 * chR2 * rG_cross_S_dot_Y10_ab
 
@@ -780,13 +786,14 @@ function qpTr1b_initialize(Params::Parameters,Orb::Vector{Orb1B},chR2::Float64,C
     qpTrE2 = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E2,2)
     qpTrE3 = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E3,3)
         # Case of toroidal E1 electric transition operators ...
-    qpTrE1_VC = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_VC,1)
-    qpTrE1_VS = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_VS,1)
-    qpTrE1_TC = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_TC,1)
-    qpTrE1_TS = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_TS,1)
+            # (current operators VC, VS, TC, TS, sTC & sTS are time-odd, i.e. O[b,a] = -(-1)^((j_a-j_b)/2) O[a,b] ... T_odd = true)
+    qpTrE1_VC = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_VC,1;T_odd=true)
+    qpTrE1_VS = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_VS,1;T_odd=true)
+    qpTrE1_TC = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_TC,1;T_odd=true)
+    qpTrE1_TS = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_TS,1;T_odd=true)
     qpTrE1_C = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_C,1)
-    qpTrE1_sTC = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_sTC,1)
-    qpTrE1_sTS = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_sTS,1)
+    qpTrE1_sTC = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_sTC,1;T_odd=true)
+    qpTrE1_sTS = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_sTS,1;T_odd=true)
     qpTrE1_sC = qpTr1b_EX_initialize(Params,Orb,U,V,TrOp.E1_sC,1)
         # Case of standard MX magnetic transition operators ...
     qpTrM1 = qpTr1b_MX_initialize(Params,Orb,U,V,TrOp.M1,1)
@@ -805,10 +812,13 @@ function qpTr1b_initialize(Params::Parameters,Orb::Vector{Orb1B},chR2::Float64,C
     return qpTrOp
 end
 
-function qpTr1b_EX_initialize(Params::Parameters,Orb::Vector{Orb1B},U::O1B,V::O1B,TrOp_EX::O1B,X::Int64)
+function qpTr1b_EX_initialize(Params::Parameters,Orb::Vector{Orb1B},U::O1B,V::O1B,TrOp_EX::O1B,X::Int64;T_odd::Bool=false)
     # Read parameters
     N_max = Params.Calc.Nmax
     a_max = div((N_max + 1)*(N_max+2),2)
+
+    # Time-reversal phase of the exchange (V_ka U_lb) term of the 20 components ... +1 for time-even (density) & -1 for time-odd (current) operators ...
+    Phase_T = T_odd ? -1.0 : 1.0
 
      # Initialize the quasiparticle representation of EX transition operator ...
     pEX_11, nEX_11 = zeros(Float64,a_max,a_max), zeros(Float64,a_max,a_max)
@@ -866,8 +876,8 @@ function qpTr1b_EX_initialize(Params::Parameters,Orb::Vector{Orb1B},U::O1B,V::O1
                                     nEX_11ME = nTrOp_EX_kl * nU_ka * nU_lb + Phase_11 * nTrOp_EX_lk * nV_ka * nV_lb
 
                                     # 20 components ...
-                                    pEX_20ME = pTrOp_EX_kl * (pV_ka * pU_lb + Phase_20 * pU_ka * pV_lb)
-                                    nEX_20ME = nTrOp_EX_kl * (nV_ka * nU_lb + Phase_20 * nU_ka * nV_lb)
+                                    pEX_20ME = pTrOp_EX_kl * (Phase_T * pV_ka * pU_lb + Phase_20 * pU_ka * pV_lb)
+                                    nEX_20ME = nTrOp_EX_kl * (Phase_T * nV_ka * nU_lb + Phase_20 * nU_ka * nV_lb)
 
                                     pEX_11Sum += pEX_11ME
                                     nEX_11Sum += nEX_11ME
@@ -961,25 +971,6 @@ function qpTr1b_BX_initialize(Params::Parameters,Orb::Vector{Orb1B},U::O1B,V::O1
     # Read parameters
     N_max = Params.Calc.Nmax
     a_max = div((N_max + 1)*(N_max+2),2)
-
-    # Charge-changing operators ... no antisymmetrization between the two indices (p != n), hence unlike EX & MX the two
-    # isospin components are NOT combined, the beta^- (pn) & beta^+ (np) operators are kept separately:
-    #   beta^- = X_hat^-1 sum_kl (p k||O||n l) [c^+_pk c~_nl]_X ,   beta^+ = X_hat^-1 sum_kl (n k||O||p l) [c^+_nk c~_pl]_X
-    # With c^+_k = sum_a (U_ka a^+_a + V_ka a~_a)-type Bogoliubov transformation the 11 & 20 parts read
-    #   [c^+_pk c~_nl]_X = U^p_ka U^n_lb [a^+_pa a~_nb]_X + (-1)^(j_a+j_b-X) V^p_ka V^n_lb [a^+_nb a~_pa]_X
-    #                      -+ U^p_ka V^n_lb [a^+_pa a^+_nb]_X  +- V^p_ka U^n_lb [a~_pa a~_nb]_X
-    # Stored quantities (p ... first index proton, second neutron; n ... first index neutron, second proton):
-    #   qp11.p[a,b] = sum_kl [(p k||O||n l) U^p_ka U^n_lb + (-1)^(j_a+j_b-X) (n l||O||p k) V^p_ka V^n_lb] ... coefficient of [a^+_pa a~_nb]_X
-    #   qp11.n[a,b] = sum_kl [(n k||O||p l) U^n_ka U^p_lb + (-1)^(j_a+j_b-X) (p l||O||n k) V^n_ka V^p_lb] ... coefficient of [a^+_na a~_pb]_X
-    #   i.e. the 11 part of the full operator O = beta^- + beta^+ (UU of beta^- & VV of beta^+ in qp11.p, vice versa in qp11.n),
-    #   pass TrOp_BX with the n (resp. p) component set to zero to get the 11 part of pure beta^- (resp. beta^+) ...
-    #   qp20.p[a,b] = sum_kl (p k||O||n l) U^p_ka V^n_lb ... beta^-, forward (X) amplitude [a^+_pa a^+_nb]
-    #   qp20.n[a,b] = sum_kl (n k||O||p l) U^n_ka V^p_lb ... beta^+, forward (X) amplitude [a^+_na a^+_pb]
-    # Backward (Y) amplitudes follow from (b||O||a) = (-1)^(j_a-j_b) (a||O||b) (holds for both F & GT):
-    #   sum_kl (p k||O||n l) V^p_ka U^n_lb = (-1)^(j_a-j_b) qp20.n[b,a]   (beta^-)
-    #   sum_kl (n k||O||p l) V^n_ka U^p_lb = (-1)^(j_a-j_b) qp20.p[b,a]   (beta^+)
-    # i.e. M(beta^-) ~ sum_pn [X_pn u_p v_n + Y_pn v_p u_n] (p||O||n) & M(beta^+) ~ sum_pn [X_pn v_p u_n + Y_pn u_p v_n] (p||O||n)
-    # in the BCS limit (Suhonen), the relative X/Y sign depends on the phonon convention used in the pnQRPA code ...
 
     # Initialize the quasiparticle representation of BX transition operator ...
     pBX_11, nBX_11 = zeros(Float64,a_max,a_max), zeros(Float64,a_max,a_max)

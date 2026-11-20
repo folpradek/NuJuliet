@@ -504,7 +504,6 @@ end
 @inline function J1b_convective(r::Float64,theta::Float64,phi::Float64,
                                 l_a::Int64,j_a::Int64,m_a::Int64,R_a::Float64,dR_a::Float64,
                                 l_b::Int64,j_b::Int64,m_b::Int64,R_b::Float64,dR_b::Float64)
-
     # Initialize the vlue of 1-body current J ...
     J_x, J_y, J_z = 0.0, 0.0, 0.0
 
@@ -525,16 +524,17 @@ end
             J_x += J * Y_x
             J_y += J * Y_y
             J_z += J * Y_z
-
-            # 2nd term ...
-            (Y_x,Y_y,Y_z) = vector_spherical_harmonic_function(l_a,l_a+1,-div(m_a-1,2),theta,phi)
-
-            J = -sqrt(Float64(l_a - 1) / Float64(2*l_a + 1)) * (dR_a - Float64(l_a) / r * R_a) * R_b * Y * Amp_1 * phase(div(m_a-1,2))
-
-            J_x += J * Y_x
-            J_y += J * Y_y
-            J_z += J * Y_z
         end
+
+        # 2nd term ...
+        Y = scalar_spherical_harmonic_function(l_b,div(m_b-1,2),theta,phi)
+        (Y_x,Y_y,Y_z) = vector_spherical_harmonic_function(l_a,l_a+1,-div(m_a-1,2),theta,phi)
+
+        J = -sqrt(Float64(l_a + 1) / Float64(2*l_a + 1)) * (dR_a - Float64(l_a) / r * R_a) * R_b * Y * Amp_1 * phase(div(m_a-1,2))
+
+        J_x += J * Y_x
+        J_y += J * Y_y
+        J_z += J * Y_z
 
 
         # Second bracket ...
@@ -549,16 +549,17 @@ end
             J_x += J * Y_x
             J_y += J * Y_y
             J_z += J * Y_z
-
-            # 2nd term ...
-            (Y_x,Y_y,Y_z) = vector_spherical_harmonic_function(l_b,l_b+1,div(m_b-1,2),theta,phi)
-
-            J = sqrt(Float64(l_b - 1) / Float64(2*l_b + 1)) * (dR_b - Float64(l_b) / r * R_b) * R_a * Y * Amp_1
-
-            J_x += J * Y_x
-            J_y += J * Y_y
-            J_z += J * Y_z
         end
+
+        # 2nd term ...
+        Y = phase(div(m_a-1,2)) * scalar_spherical_harmonic_function(l_a,-div(m_a-1,2),theta,phi)
+        (Y_x,Y_y,Y_z) = vector_spherical_harmonic_function(l_b,l_b+1,div(m_b-1,2),theta,phi)
+
+        J = sqrt(Float64(l_b + 1) / Float64(2*l_b + 1)) * (dR_b - Float64(l_b) / r * R_b) * R_a * Y * Amp_1
+
+        J_x += J * Y_x
+        J_y += J * Y_y
+        J_z += J * Y_z
 
     end
 
@@ -579,16 +580,17 @@ end
             J_x += J * Y_x
             J_y += J * Y_y
             J_z += J * Y_z
-
-            # 2nd term ...
-            (Y_x,Y_y,Y_z) = vector_spherical_harmonic_function(l_a,l_a+1,-div(m_a+1,2),theta,phi)
-
-            J = -sqrt(Float64(l_a - 1) / Float64(2*l_a + 1)) * (dR_a - Float64(l_a) / r * R_a) * R_b * Y * Amp_2 * phase(div(m_a+1,2))
-
-            J_x += J * Y_x
-            J_y += J * Y_y
-            J_z += J * Y_z
         end
+
+        # 2nd term ...
+        Y = scalar_spherical_harmonic_function(l_b,div(m_b+1,2),theta,phi)
+        (Y_x,Y_y,Y_z) = vector_spherical_harmonic_function(l_a,l_a+1,-div(m_a+1,2),theta,phi)
+
+        J = -sqrt(Float64(l_a + 1) / Float64(2*l_a + 1)) * (dR_a - Float64(l_a) / r * R_a) * R_b * Y * Amp_2 * phase(div(m_a+1,2))
+
+        J_x += J * Y_x
+        J_y += J * Y_y
+        J_z += J * Y_z
 
 
         # Second bracket ...
@@ -603,16 +605,17 @@ end
             J_x += J * Y_x
             J_y += J * Y_y
             J_z += J * Y_z
-
-            # 2nd term ...
-            (Y_x,Y_y,Y_z) = vector_spherical_harmonic_function(l_b,l_b+1,div(m_b+1,2),theta,phi)
-
-            J = sqrt(Float64(l_b - 1) / Float64(2*l_b + 1)) * (dR_b - Float64(l_b) / r * R_b) * R_a * Y * Amp_2
-
-            J_x += J * Y_x
-            J_y += J * Y_y
-            J_z += J * Y_z
         end
+
+        # 2nd term ...
+        Y = phase(div(m_a+1,2)) * scalar_spherical_harmonic_function(l_a,-div(m_a+1,2),theta,phi)
+        (Y_x,Y_y,Y_z) = vector_spherical_harmonic_function(l_b,l_b+1,div(m_b+1,2),theta,phi)
+
+        J = sqrt(Float64(l_b + 1) / Float64(2*l_b + 1)) * (dR_b - Float64(l_b) / r * R_b) * R_a * Y * Amp_2
+
+        J_x += J * Y_x
+        J_y += J * Y_y
+        J_z += J * Y_z
 
     end
 
@@ -622,7 +625,6 @@ end
 @inline function J1b_spin(r::Float64,theta::Float64,phi::Float64,
                           l_a::Int64,j_a::Int64,m_a::Int64,R_a::Float64,dR_a::Float64,
                           l_b::Int64,j_b::Int64,m_b::Int64,R_b::Float64,dR_b::Float64)
-
     # Initialize the vlue of 1-body spin current J ...
     J_x, J_y, J_z = 0.0, 0.0, 0.0
 
@@ -852,3 +854,11 @@ end
         end
     end
 =#
+
+# Weights of phonon levels for the averaged transition densities & currents of the external TDA/RPA routines ...
+    # M_nu -> |M_nu| / sqrt(sum_nu |M_nu|^2) ... no change of scale if all M_nu vanish (e.g. a single spurious level) ...
+function phonon_weights!(M::AbstractVector)
+    Norm = sqrt(sum(abs2, M))
+    M .= Norm > 0.0 ? abs.(M) ./ Norm : abs.(M)
+    return M
+end

@@ -5,7 +5,7 @@ function HF_MBPT(Params::Parameters,Orb::Vector{Orb1B},Orb_NN::Orb2B,h_N::O1B,V_
     # Evaluate the HF-MBPT(2) ground-state energy correction ...
     @time HF_MBPT_energy(Params,Orb,Orb_HF_MBPT,Orb_NN,h_N,V_NN)
 
-    # Evaluate the HF-MBPT(3) ground-state OBDM correction & radial densities ...
+    # Evaluate the 2nd order HF-MBPT ground-state OBDM correction & radial densities ...
     @time HF_MBPT_OBDM(Params,Orb,Orb_HF_MBPT,Orb_NN,h_N,V_NN)
 
     return
@@ -64,7 +64,7 @@ function HF_MBPT_orbitals_make(Params::Parameters,Orb::Vector{Orb1B})
         end
     end
 
-    # Allocate the 1-body partice & hole orbitals structure ...
+    # Allocate the 1-body particle & hole orbitals structure ...
     Orb_HF_MBPT = Orb1B_HF_MBPT(pnOrbVector(pOrb_particle,nOrb_particle),
                                 pnOrbVector(pOrb_hole,nOrb_hole),
                                 pnInteger(pN_particle,nN_particle),
@@ -125,7 +125,7 @@ end
 
         if (t_a == -1) && (t_b == 1) && (t_c == 1) && (t_d == -1)
             @inbounds for I in I_min:I_max
-                ME = Float64(2*I + 1) * w6j(j_a,j_b,2*I,j_c,j_d,2*J) * O2b_pn(a_a,a_b,a_d,a_c,I,P_ab,V_NN,Orb_NN) * phase(div(j_c + j_d,2) - I)
+                ME = Float64(2*I + 1) * w6j(j_a,j_b,2*I,j_c,j_d,2*J) * O2b_pn(a_a,a_b,a_d,a_c,I,P_ab,V_NN,Orb_NN) * (-phase(div(j_c + j_d,2) - I))
                 V -= ME
             end
             return V
@@ -133,7 +133,7 @@ end
 
         if (t_a == 1) && (t_b == -1) && (t_c == -1) && (t_d == 1)
             @inbounds for I in I_min:I_max
-                ME = Float64(2*I + 1) * w6j(j_a,j_b,2*I,j_c,j_d,2*J) * O2b_pn(a_b,a_a,a_c,a_d,I,P_ab,V_NN,Orb_NN) * phase(div(j_a + j_b,2) - I)
+                ME = Float64(2*I + 1) * w6j(j_a,j_b,2*I,j_c,j_d,2*J) * O2b_pn(a_b,a_a,a_c,a_d,I,P_ab,V_NN,Orb_NN) * (-phase(div(j_a + j_b,2) - I))
                 V -= ME
             end
             return V
@@ -728,7 +728,7 @@ function HF_MBPT_energy(Params::Parameters,Orb::Vector{Orb1B},Orb_HF_MBPT::Orb1B
     println("\t\t                           E^(3)_hh = " * string(round(dE3_hh, sigdigits=9)) * " MeV")
 
     # Print the total HF-MBPT energy corrections ...
-    println("\tHF-MBPT(3) energy    ...   E^(tot)  = " * string(round(dE, sigdigits=9)) * " MeV\n")
+    println("\tHF-MBPT(2+3) energy  ...   E^(tot)  = " * string(round(dE, sigdigits=9)) * " MeV\n")
 
     # Write the HF-MBPT energy corrections to the summary file ...
     Summary =  open(string("io/", IO, "/HF/HF_summary.dat"), "a")
@@ -740,8 +740,8 @@ function HF_MBPT_energy(Params::Parameters,Orb::Vector{Orb1B},Orb_HF_MBPT::Orb1B
         @printf(Summary, "\nE_0^(3)_hh     = %15.8f \t MeV \t\t ... \t NLO HF-MBPT(3) hh correction to ground-state energy", dE3_hh)
         println(Summary, "\n____________________________________________________________________________________________________________________________")
         @printf(Summary, "\nE_0^(tot)      = %15.8f \t MeV \t\t ... \t NLO HF-MBPT(2+3) correction to ground-state energy\n\n", dE)
-        @printf(Summary, "\nE_0^(2) / A    = %15.8f \t MeV \t\t ... \t NLO HF-MBPT(2) correction to ground-state energy per nucleon", dE2 / Float64(Params.Calc.A))
-        @printf(Summary, "\nE_0^(3) / A    = %15.8f \t MeV \t\t ... \t NLO HF-MBPT(3) correction to ground-state energy",  (dE3_hh + dE3_ph + dE3_pp) / Float64(Params.Calc.A))
+        @printf(Summary, "\nE_0^(2) / A    = %15.8f \t MeV \t\t ... \t LO HF-MBPT(2) correction to ground-state energy per nucleon", dE2 / Float64(Params.Calc.A))
+        @printf(Summary, "\nE_0^(3) / A    = %15.8f \t MeV \t\t ... \t NLO HF-MBPT(3) correction to ground-state energy per nucleon",  (dE3_hh + dE3_ph + dE3_pp) / Float64(Params.Calc.A))
         @printf(Summary, "\nE_0^(3)_pp / A = %15.8f \t MeV \t\t ... \t NLO HF-MBPT(3) pp correction to ground-state energy per nucleon", dE3_pp / Float64(Params.Calc.A))
         @printf(Summary, "\nE_0^(3)_ph / A = %15.8f \t MeV \t\t ... \t NLO HF-MBPT(3) ph correction to ground-state energy per nucleon", dE3_ph / Float64(Params.Calc.A))
         @printf(Summary, "\nE_0^(3)_hh / A = %15.8f \t MeV \t\t ... \t NLO HF-MBPT(3) hh correction to ground-state energy per nucleon", dE3_hh / Float64(Params.Calc.A))
@@ -822,7 +822,7 @@ function HF_MBPT_OBDM(Params::Parameters,Orb::Vector{Orb1B},Orb_HF_MBPT::Orb1B_H
                 a_r, l_r, j_r = Orb_r.a, Orb_r.l, Orb_r.j
                 E_r = h_N.p[a_r,a_r]
 
-                P_pr, P_hr = rem(l_p + l_r,2) + 1, rem(l_p + l_r,2) + 1
+                P_pr, P_hr = rem(l_p + l_r,2) + 1, rem(l_h + l_r,2) + 1
 
                 @inbounds for J in div(abs(j_h - j_r),2):div((j_h + j_r),2)
                     J_hat = Float64(2*J + 1)
@@ -890,10 +890,10 @@ function HF_MBPT_OBDM(Params::Parameters,Orb::Vector{Orb1B},Orb_HF_MBPT::Orb1B_H
                                 continue
                             end
 
-                            E_hgqr = E_h + E_f - E_q - E_r
+                            E_hfqr = E_h + E_f - E_q - E_r
 
                             ME = J_hat / j_p_hat * O2b_pn(a_p,a_f,a_q,a_r,J,P_pf,V_NN,Orb_NN) * 
-                                O2b_pn(a_q,a_r,a_h,a_f,J,P_hf,V_NN,Orb_NN) / E_hp / E_hgqr
+                                O2b_pn(a_q,a_r,a_h,a_f,J,P_hf,V_NN,Orb_NN) / E_hp / E_hfqr
 
                             dpRho[a_p,a_h] += ME
                             dpRho[a_h,a_p] += ME
@@ -1024,10 +1024,10 @@ function HF_MBPT_OBDM(Params::Parameters,Orb::Vector{Orb1B},Orb_HF_MBPT::Orb1B_H
                                 continue
                             end
 
-                            E_cghp = E_c + E_g - E_p - E_q
+                            E_cgpq = E_c + E_g - E_p - E_q
 
                             ME = -0.5 * J_hat / j_h_hat * O2b_pp(a_p,a_q,a_h,a_g,J,P_hg,V_NN,Orb,Orb_NN) *
-                                O2b_pp(a_c,a_g,a_p,a_q,J,P_pq,V_NN,Orb,Orb_NN) / E_ghpq / E_cghp
+                                O2b_pp(a_c,a_g,a_p,a_q,J,P_pq,V_NN,Orb,Orb_NN) / E_ghpq / E_cgpq
                             dpRho[a_c,a_h] += ME
                         end
 
@@ -1805,16 +1805,10 @@ function HF_MBPT_TBCF(Params::Parameters,C::O1B,h_N::O1B,V_NN::O2B,Orb::Vector{O
             l_c, j_c, E_c = Orb[c].l, Orb[c].j, HF_MBPT_h1b(c,t_c,h_N)
             l_d, j_d, E_d = Orb[d].l, Orb[d].j, HF_MBPT_h1b(d,t_d,h_N)
 
-            Phase_ab = phase(div(j_a + j_b,2) - J)
-            Phase_cd = phase(div(j_c + j_d,2) - J)
-
-            if t_a == t_b
-                Phase_ab *= -1.0
-            end
-
-            if t_c == t_d
-                Phase_cd *= -1.0
-            end
+            # Antisymmetry exchange phases |ab;J> = -(-1)^(j_a + j_b - J) |ba;J> ... for all isospin combinations ...
+            # (consistent with the pn exchange convention of HF_MBPT3_V2b_Pandya & RPA_allocate) ...
+            Phase_ab = -phase(div(j_a + j_b,2) - J)
+            Phase_cd = -phase(div(j_c + j_d,2) - J)
 
             sigma = HF_MBPT3_sigma_ph_direct(a,l_a,j_a,t_a,E_a,b,l_b,j_b,t_b,E_b,c,l_c,j_c,t_c,E_c,d,l_d,j_d,t_d,E_d,J) +
                     HF_MBPT3_sigma_ph_direct(b,l_b,j_b,t_b,E_b,a,l_a,j_a,t_a,E_a,c,l_c,j_c,t_c,E_c,d,l_d,j_d,t_d,E_d,J) * Phase_ab +
@@ -1902,8 +1896,8 @@ function HF_MBPT_TBCF(Params::Parameters,C::O1B,h_N::O1B,V_NN::O2B,Orb::Vector{O
 
                 t_a, t_b, t_c, t_d = 1, 1, 1, 1
 
-                O_a, O_b = Orb[a].pO, Orb[b].pO
-                O_c, O_d = Orb[c].pO, Orb[d].pO
+                O_a, O_b = Orb[a].nO, Orb[b].nO
+                O_c, O_d = Orb[c].nO, Orb[d].nO
 
                 nnSigmaSum = 0.0
 
@@ -1992,8 +1986,8 @@ function HF_MBPT_TBCF(Params::Parameters,C::O1B,h_N::O1B,V_NN::O2B,Orb::Vector{O
 
                 t_a, t_b, t_c, t_d = 1, 1, 1, 1
 
-                O_a, O_b = Orb[a].pO, Orb[b].pO
-                O_c, O_d = Orb[c].pO, Orb[d].pO
+                O_a, O_b = Orb[a].nO, Orb[b].nO
+                O_c, O_d = Orb[c].nO, Orb[d].nO
 
                 nnSigmaSum = 0.0
 
@@ -2082,8 +2076,8 @@ function HF_MBPT_TBCF(Params::Parameters,C::O1B,h_N::O1B,V_NN::O2B,Orb::Vector{O
 
                 t_a, t_b, t_c, t_d = 1, 1, 1, 1
 
-                O_a, O_b = Orb[a].pO, Orb[b].pO
-                O_c, O_d = Orb[c].pO, Orb[d].pO
+                O_a, O_b = Orb[a].nO, Orb[b].nO
+                O_c, O_d = Orb[c].nO, Orb[d].nO
 
                 nnSigmaSum = 0.0
 
@@ -2278,9 +2272,9 @@ function HF_MBPT_export(Params::Parameters,Orb::Vector{Orb1B},Orb_NN::Orb2B,Orb_
             V_NN_NAT = O2b_transformation(Params,Orb,Orb_NN,V_NN_NAT,C_NAT,Report=false)
         end
 
-        # Otherwise take HF Hamiltonian and transform it into the HF-MBPT NAT basis ...
+        # Otherwise build 1-body Hamiltonian from the correlated OBDM & take the HF residual NN interaction, both in the HF-MBPT NAT basis ...
     else
-        println("\t\t\tConstructing HF Hamiltonian in the NAT basis ...")
+        println("\t\t\tConstructing HF-MBPT 1-body Hamiltonian (correlated OBDM) & HF residual 2-body interaction in the NAT basis ...")
         h_N_NAT = H1b(Params,Orb,Orb_NN,Orb_NNN,T,V_NN,V_NNN,Rho_NAT)
         V_NN_NAT = deepcopy(V_NN_res)
 

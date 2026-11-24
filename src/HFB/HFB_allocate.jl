@@ -165,7 +165,7 @@ function HFB_allocate(Params::Parameters,Lambda::pnFloat,Rho::O1B,Kappa::O1B,Orb
                 P_abe = rem(l_a + l_b + l_e, 2) + 1
                 @inbounds for c in 1:a_max
                     n_c, l_c, j_c = Orb[c].n, Orb[c].l, Orb[c].j
-                    A_NNN_Amp = 0.25 * sqrt(Float64((j_b + 1) * (j_c + 1)))
+                    A_NNN_Amp = 0.25 * sqrt(Float64((j_b + 1) * (j_c + 1))) * is_j_a_hat
                     @inbounds for f in 1:a_max
                         n_f = Orb[f].n
                         l_f = Orb[f].l
